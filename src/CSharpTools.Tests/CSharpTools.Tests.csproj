@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CSharpTools.SharedMemory\CSharpTools.SharedMemory.csproj" />
     <ProjectReference Include="..\CSharpTools.Websocket\CSharpTools.Websocket.csproj" />
   </ItemGroup>
 
