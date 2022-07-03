@@ -9,17 +9,15 @@ namespace CSharpTools.Websocket.Client
         private static readonly object mutexObject = new object();
         private static Dictionary<Uri, WebsocketClientWrapper> websockets = new Dictionary<Uri, WebsocketClientWrapper>();
 
-        public static bool TryGetOrCreateConnection(string host, int port, string path, out WebsocketClientWrapper websocketWrapper,
-            Action<LogData, string>? logger = null) => TryGetOrCreateConnection(new Uri($"ws://{host}:{port}{path}"), out websocketWrapper, logger);
+        public static bool TryGetOrCreateConnection(string host, int port, string path, out WebsocketClientWrapper websocketWrapper) =>
+            TryGetOrCreateConnection(new Uri($"ws://{host}:{port}{path}"), out websocketWrapper);
 
-        public static bool TryGetOrCreateConnection(Uri uri, out WebsocketClientWrapper websocketWrapper, Action<LogData, string>? logger = null)
+        public static bool TryGetOrCreateConnection(Uri uri, out WebsocketClientWrapper websocketWrapper)
         {
             lock (mutexObject)
             {
                 if (websockets.TryGetValue(uri, out websocketWrapper))
                 {
-                    if (logger != null) websocketWrapper.log.Output = logger;
-
                     if (websocketWrapper.readyState != WebSocketState.Open && !websocketWrapper.Connect())
                     {
                         websocketWrapper = null;
@@ -30,8 +28,6 @@ namespace CSharpTools.Websocket.Client
                 }
 
                 websocketWrapper = new WebsocketClientWrapper(uri);
-                if (logger != null) websocketWrapper.log.Output = logger;
-                
                 if (!websocketWrapper.Connect() || websocketWrapper.readyState != WebSocketState.Open)
                 {
                     websocketWrapper = null;
