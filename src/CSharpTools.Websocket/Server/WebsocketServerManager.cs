@@ -9,10 +9,10 @@ namespace CSharpTools.Websocket.Server
         private static readonly object mutexObject = new object();
         private static Dictionary<string, WebsocketServerHelper> websocketServers = new Dictionary<string, WebsocketServerHelper>();
 
-        public static bool TryGetOrCreateService(string host, int port, string path, out WebsocketServiceHelper websocketServiceHelper) =>
+        public static bool TryGetOrCreateService(string host, int port, string path, out WebsocketServiceWrapper websocketServiceHelper) =>
             TryGetOrCreateService(new Uri($"ws://{host}:{port}{path}"), out websocketServiceHelper);
 
-        public static bool TryGetOrCreateService(Uri uri, out WebsocketServiceHelper websocketServiceHelper)
+        public static bool TryGetOrCreateService(Uri uri, out WebsocketServiceWrapper websocketServiceHelper)
         {
             string address = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
             string path = uri.AbsolutePath;
@@ -24,7 +24,7 @@ namespace CSharpTools.Websocket.Server
                     //The server must be started for the services to not be null.
                     if (server.websocketServer.IsListening) server.websocketServer.Start();
 
-                    if (server.services.TryGetValue(path, out WebsocketServiceHelper service))
+                    if (server.services.TryGetValue(path, out WebsocketServiceWrapper service))
                     {
                         //Return service.
                         websocketServiceHelper = service;
@@ -39,7 +39,7 @@ namespace CSharpTools.Websocket.Server
                             websocketServiceHelper = null;
                             return false;
                         }
-                        websocketServiceHelper = new WebsocketServiceHelper(uri, server.websocketServer.WebSocketServices[path]);
+                        websocketServiceHelper = new WebsocketServiceWrapper(uri, server.websocketServer.WebSocketServices[path]);
                         server.services.Add(path, websocketServiceHelper);
                         return true;
                     }
@@ -60,7 +60,7 @@ namespace CSharpTools.Websocket.Server
                         websocketServiceHelper = null;
                         return false;
                     }
-                    websocketServiceHelper = new WebsocketServiceHelper(uri, websocketServer.WebSocketServices[path]);
+                    websocketServiceHelper = new WebsocketServiceWrapper(uri, websocketServer.WebSocketServices[path]);
                     websocketServers[address].services.Add(path, websocketServiceHelper);
                     websocketServer.Log.Trace($"Endpoint added at: {websocketServiceHelper.hostUri}");
 
@@ -80,7 +80,7 @@ namespace CSharpTools.Websocket.Server
 
                 if (websocketServers.TryGetValue(address, out WebsocketServerHelper server))
                 {
-                    if (server.services.TryGetValue(path, out WebsocketServiceHelper service))
+                    if (server.services.TryGetValue(path, out WebsocketServiceWrapper service))
                     {
                         service.Dispose();
                         server.services.Remove(path);

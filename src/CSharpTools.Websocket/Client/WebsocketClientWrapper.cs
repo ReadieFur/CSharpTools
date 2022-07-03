@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using WebSocketSharp;
+using WebSocketSharp.Net;
 
 namespace CSharpTools.Websocket.Client
 {
@@ -10,13 +12,29 @@ namespace CSharpTools.Websocket.Client
         private bool shouldClose = false;
 
         public Uri uri { get; private set; }
-        public bool isConnected { get; private set; }
 
         public event Action onOpen;
         public event Action<CloseEventArgs> onClose;
-        public event Action<WebSocketSharp.ErrorEventArgs> onError;
+        public event Action<ErrorEventArgs> onError;
         public event Action<MessageEventArgs> onMessage;
         public event Action onDispose;
+
+        #region Base public members
+        public CompressionMethod compression => websocket.Compression;
+        public IEnumerable<Cookie> cookies => websocket.Cookies;
+        public NetworkCredential credentials => websocket.Credentials;
+        public bool emitOnPing => websocket.EmitOnPing;
+        public bool enableRedirection => websocket.EnableRedirection;
+        public string extensions => websocket.Extensions;
+        public bool isAlive => websocket.IsAlive;
+        public bool isSecure => websocket.IsSecure;
+        public Logger log => websocket.Log;
+        public string origin => websocket.Origin;
+        public string protocol => websocket.Protocol;
+        public WebSocketState readyState => websocket.ReadyState;
+        public ClientSslConfiguration sslConfiguration => websocket.SslConfiguration;
+        public TimeSpan waitTime => websocket.WaitTime;
+        #endregion
 
         internal WebsocketClientWrapper(Uri uri) => this.uri = uri;
 
@@ -34,7 +52,6 @@ namespace CSharpTools.Websocket.Client
             websocket.OnError += Websocket_OnError;
             websocket.OnMessage += Websocket_OnMessage;
 
-            isConnected = true;
             return true;
         }
 
@@ -55,7 +72,6 @@ namespace CSharpTools.Websocket.Client
 
         private void Websocket_OnClose(object sender, CloseEventArgs e)
         {
-            isConnected = false;
             onClose?.Invoke(e);
             if (!shouldClose)
             {
@@ -64,7 +80,7 @@ namespace CSharpTools.Websocket.Client
             }
         }
 
-        private void Websocket_OnError(object sender, WebSocketSharp.ErrorEventArgs e) => onError?.Invoke(e);
+        private void Websocket_OnError(object sender, ErrorEventArgs e) => onError?.Invoke(e);
 
         private void Websocket_OnMessage(object sender, MessageEventArgs e) => onMessage?.Invoke(e);
     }

@@ -4,7 +4,7 @@ using WebSocketSharp.Server;
 
 namespace CSharpTools.Websocket.Server
 {
-    public class WebsocketServiceHelper
+    public class WebsocketServiceWrapper
     {
         public Uri hostUri { get; private set; }
         public WebSocketServiceHost webSocketServiceManager { get; private set; }
@@ -16,7 +16,7 @@ namespace CSharpTools.Websocket.Server
         public event Action<string, WebSocketSharp.ErrorEventArgs> onError;
         public event Action<string, WebSocketSharp.MessageEventArgs> onMessage;
 
-        internal WebsocketServiceHelper(Uri hostUri, WebSocketServiceHost webSocketServiceManager)
+        internal WebsocketServiceWrapper(Uri hostUri, WebSocketServiceHost webSocketServiceManager)
         {
             this.hostUri = hostUri;
             this.webSocketServiceManager = webSocketServiceManager;

@@ -17,7 +17,7 @@ namespace CSharpTools.Websocket.Client
             {
                 if (websockets.TryGetValue(uri, out websocketWrapper))
                 {
-                    if (!websocketWrapper.isConnected && !websocketWrapper.Connect())
+                    if (!websocketWrapper.isAlive && !websocketWrapper.Connect())
                     {
                         websocketWrapper = null;
                         TryRemoveConnection(uri);
