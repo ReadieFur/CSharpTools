@@ -20,11 +20,11 @@ if (!WebsocketClientManager.TryGetOrCreateConnection(uri, out websocket))
 }
 else Console.WriteLine("Created websocket");
 
-Console.WriteLine($"Websocket is connected: {websocket.isConnected}");
-websocket.onOpen += () => Console.WriteLine("Client connection opened.");
-websocket.onError += (error) => Console.WriteLine(error.Message);
-websocket.onClose += (data) => Console.WriteLine(data.Reason);
-websocket.onMessage += (data) => Console.WriteLine(data.Data);
+websocket.onOpen += () => Console.WriteLine("Client onOpen");
+websocket.onError += (error) => Console.WriteLine($"Client onError {error.Message}");
+websocket.onClose += (data) => Console.WriteLine($"Client onClose {data.Reason}");
+websocket.onMessage += (data) => Console.WriteLine($"Client onMessage {data.Data}");
+websocket.onDispose += () => Console.WriteLine("Client onDispose");
 
 Console.WriteLine("Press enter to exit...");
 Console.ReadLine();
@@ -36,7 +36,7 @@ else Console.WriteLine("Failed to remove websocket");
 ### Server:
 ```cs
 Uri serverUri = new Uri("ws://0.0.0.0:8080/");
-WebsocketServiceHelper service;
+WebsocketServiceWrapper service;
 if (!WebsocketServerManager.TryGetOrCreateService(serverUri, out service))
 {
     Console.WriteLine("Failed to create service");
@@ -44,10 +44,11 @@ if (!WebsocketServerManager.TryGetOrCreateService(serverUri, out service))
 }
 else Console.WriteLine("Created service");
 
-service.onOpen += (id) => Console.WriteLine(id);
-service.onError += (id, error) => Console.WriteLine($"{id} {error.Message}");
-service.onClose += (id, data) => Console.WriteLine($"{id} {data.Reason}");
-service.onMessage += (id, data) => Console.WriteLine($"{id} {data.Data}");
+service.onOpen += (id) => Console.WriteLine($"Server onOpen {id}");
+service.onError += (id, error) => Console.WriteLine($"Server onError {id} {error.Message}");
+service.onClose += (id, data) => Console.WriteLine($"Server onClose {id} {data.Reason}");
+service.onMessage += (id, data) => Console.WriteLine($"Server onMessage {id} {data.Data}");
+service.onDispose += () => Console.WriteLine("Server onDispose");
 
 Console.WriteLine("Press enter to exit...");
 Console.ReadLine();

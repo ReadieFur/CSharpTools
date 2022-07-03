@@ -1,2 +1,5 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿#region Websocket
+//CSharpTools.Tests.Websocket.Server.Main();
+//CSharpTools.Tests.Websocket.Client.Main();
+CSharpTools.Tests.Websocket.ClientAndServer.Main();
+#endregion
