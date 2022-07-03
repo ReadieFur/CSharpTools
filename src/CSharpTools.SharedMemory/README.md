@@ -2,7 +2,7 @@
 This library contains a helper class to make using shared memory and buffers in C# easier.  
 
 ## Installation:
-Grab the latest build from the releases folder [here](./bin/Release/CSharpTools.SharedMemory.dll).  
+Grab the latest build from the releases folder [here](./bin/Release/netstandard2.0/CSharpTools.SharedMemory.dll).  
 Once you have done that, add the dll to your projects refrence files.
 
 ## Example:

@@ -5,7 +5,7 @@ This library contains a helper class to make using the websocket-sharp library b
 - [websocket-sharp](https://github.com/sta/websocket-sharp)
 
 ## Installation:
-Grab the latest build from the releases folder [here](./bin/Release/CSharpTools.Websocket.dll).  
+Grab the latest build from the releases folder [here](./bin/Release/netstandard2.0/CSharpTools.Websocket.dll).  
 Once you have done that, add the dll to your projects refrence files.
 
 ## Examples:
