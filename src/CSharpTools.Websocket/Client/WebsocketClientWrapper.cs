@@ -19,23 +19,6 @@ namespace CSharpTools.Websocket.Client
         public event Action<MessageEventArgs> onMessage;
         public event Action onDispose;
 
-        #region Base public members
-        public CompressionMethod compression => websocket.Compression;
-        public IEnumerable<Cookie> cookies => websocket.Cookies;
-        public NetworkCredential credentials => websocket.Credentials;
-        public bool emitOnPing => websocket.EmitOnPing;
-        public bool enableRedirection => websocket.EnableRedirection;
-        public string extensions => websocket.Extensions;
-        public bool isAlive => websocket.IsAlive;
-        public bool isSecure => websocket.IsSecure;
-        public Logger log => websocket.Log;
-        public string origin => websocket.Origin;
-        public string protocol => websocket.Protocol;
-        public WebSocketState readyState => websocket.ReadyState;
-        public ClientSslConfiguration sslConfiguration => websocket.SslConfiguration;
-        public TimeSpan waitTime => websocket.WaitTime;
-        #endregion
-
         internal WebsocketClientWrapper(Uri uri) => this.uri = uri;
 
         internal bool Connect()
@@ -83,5 +66,31 @@ namespace CSharpTools.Websocket.Client
         private void Websocket_OnError(object sender, ErrorEventArgs e) => onError?.Invoke(e);
 
         private void Websocket_OnMessage(object sender, MessageEventArgs e) => onMessage?.Invoke(e);
+
+        #region Base public members
+        public CompressionMethod compression => websocket.Compression;
+        public IEnumerable<Cookie> cookies => websocket.Cookies;
+        public NetworkCredential credentials => websocket.Credentials;
+        public bool emitOnPing => websocket.EmitOnPing;
+        public bool enableRedirection => websocket.EnableRedirection;
+        public string extensions => websocket.Extensions;
+        public bool isAlive => websocket.IsAlive;
+        public bool isSecure => websocket.IsSecure;
+        public Logger log => websocket.Log;
+        public string origin => websocket.Origin;
+        public string protocol => websocket.Protocol;
+        public WebSocketState readyState => websocket.ReadyState;
+        public ClientSslConfiguration sslConfiguration => websocket.SslConfiguration;
+        public TimeSpan waitTime => websocket.WaitTime;
+        public bool Ping() => websocket.Ping();
+        public bool Ping(string message) => websocket.Ping();
+        public void Send(byte[] data) => websocket.Send(data);
+        public void Send(string message) => websocket.Send(message);
+        public void SendAsync(byte[] data, Action<bool> completed) => websocket.SendAsync(data, completed);
+        public void SendAsync(string message, Action<bool> completed) => websocket.SendAsync(message, completed);
+        public void SetCookie(Cookie cookie) => websocket.SetCookie(cookie);
+        public void SetCredentials(string username, string password, bool preAuth) => websocket.SetCredentials(username, password, preAuth);
+        public void SetProxy(string url, string username, string password) => websocket.SetProxy(url, username, password);
+        #endregion
     }
 }
