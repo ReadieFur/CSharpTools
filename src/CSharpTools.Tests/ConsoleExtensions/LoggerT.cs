@@ -6,6 +6,7 @@ namespace CSharpTools.Tests.ConsoleExtensions
     {
         public static void Main()
         {
+            Logger.Trace("Trace.").Wait();
             Logger.Debug("Debug.").Wait();
             Logger.Info("Info.").Wait();
             Logger.Warning("Warning.").Wait();

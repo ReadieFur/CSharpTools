@@ -1,7 +1,8 @@
 ﻿namespace CSharpTools.ConsoleExtensions
 {
-    public enum ELogMode
+    public enum ELogLevel
     {
+        Trace,
         Debug,
         Info,
         Warning,
