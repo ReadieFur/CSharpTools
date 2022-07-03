@@ -7,7 +7,7 @@ namespace CSharpTools.Tests.Websocket
     {
         private static Uri uri = new Uri("ws://127.0.0.1:8080/");
         private static WebsocketServiceWrapper serverService;
-        private static WebsocketClientWrapper clientWebsocket;
+        private static WebsocketClientHelper clientWebsocket;
 
         public static void Main()
         {
@@ -15,13 +15,16 @@ namespace CSharpTools.Tests.Websocket
             if (!Server()) throw new Exception("Failed to create server.");
             if (!Client()) throw new Exception("Failed to create client.");
 
+            serverService.BroadcastQueueSend("Server to client test queue message.");
+            clientWebsocket.QueueSend("Client to server test queue message.");
+
             //Wait for user input to exit.
             Console.WriteLine("Press enter to exit...");
             Console.ReadLine();
 
             //Shutdown connections.
-            if (WebsocketClientManager.TryRemoveConnection(uri)) Console.WriteLine("Removed websocket");
-            else Console.WriteLine("Failed to remove websocket");
+            clientWebsocket.Close();
+            Console.WriteLine("Removed websocket");
 
             if (WebsocketServerManager.TryRemoveService(uri)) Console.WriteLine("Removed service");
             else Console.WriteLine("Failed to remove service");
@@ -53,25 +56,19 @@ namespace CSharpTools.Tests.Websocket
 
         private static bool Client()
         {
-            if (!WebsocketClientManager.TryGetOrCreateConnection(uri, out clientWebsocket))
-            {
-                Console.WriteLine("Failed to create websocket");
-                return false;
-            }
-            else Console.WriteLine("Created websocket");
+            clientWebsocket = new WebsocketClientHelper(uri);
+            Console.WriteLine("Created websocket");
 
-            clientWebsocket.onOpen += () =>
+            clientWebsocket.Connect();
+
+            clientWebsocket.OnOpen += (s, e) =>
             {
                 Console.WriteLine("Client onOpen");
                 clientWebsocket.Send("Hello Server!");
             };
-            clientWebsocket.onError += (error) => Console.WriteLine($"Client onError {error.Message}");
-            clientWebsocket.onClose += (data) => Console.WriteLine($"Client onClose {data.Reason}");
-            clientWebsocket.onMessage += (data) => Console.WriteLine($"Client onMessage {data.Data}");
-            clientWebsocket.onDispose += () => Console.WriteLine("Client onDispose");
-
-            serverService.BroadcastQueueSend("Server to client test queue message.");
-            clientWebsocket.QueueSend("Client to server test queue message.");
+            clientWebsocket.OnError += (s, error) => Console.WriteLine($"Client onError {error.Message}");
+            clientWebsocket.OnClose += (s, data) => Console.WriteLine($"Client onClose {data.Reason}");
+            clientWebsocket.OnMessage += (s, data) => Console.WriteLine($"Client onMessage {data.Data}");
 
             return true;
         }
