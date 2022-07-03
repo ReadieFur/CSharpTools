@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using WebSocketSharp;
 using WebSocketSharp.Net;
 
@@ -10,6 +12,9 @@ namespace CSharpTools.Websocket.Client
     {
         private WebSocket websocket;
         private bool shouldClose = false;
+        private object queuedSendMutexObject = new object();
+        private bool processingMessages = false;
+        private ConcurrentQueue<string> queuedMessages = new ConcurrentQueue<string>();
 
         public Uri uri { get; private set; }
 
@@ -66,6 +71,32 @@ namespace CSharpTools.Websocket.Client
         private void Websocket_OnError(object sender, ErrorEventArgs e) => onError?.Invoke(e);
 
         private void Websocket_OnMessage(object sender, MessageEventArgs e) => onMessage?.Invoke(e);
+
+        public bool QueueSend(string message, int millisecondsTimeout = 0)
+        {
+            queuedMessages.Enqueue(message);
+
+            if (processingMessages) return true;
+            
+            //Lock while we check the count.
+            if (!Monitor.TryEnter(queuedSendMutexObject, millisecondsTimeout)) return false;
+
+            //setup the task if needed.
+            if (queuedMessages.Count > 0)
+            {
+                processingMessages = true;
+                //Leave this task to run and let the rest of this method continue.
+                Task.Run(() =>
+                {
+                    while (isAlive && queuedMessages.Count > 0)
+                        if (queuedMessages.TryDequeue(out string messageToSend))
+                            websocket.Send(messageToSend);
+                }).ContinueWith(_ => processingMessages = false);
+            }
+
+            Monitor.Exit(queuedSendMutexObject);
+            return true;
+        }
 
         #region Base public members
         public CompressionMethod compression => websocket.Compression;
