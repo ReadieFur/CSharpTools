@@ -1,6 +1,6 @@
 ﻿namespace CSharpTools.Tests.SharedMemory
 {
-    internal struct STestData
+    internal struct STestDataT
     {
         public int number;
     }

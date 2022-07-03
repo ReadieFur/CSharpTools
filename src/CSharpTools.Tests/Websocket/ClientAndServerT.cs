@@ -3,7 +3,7 @@ using CSharpTools.Websocket.Client;
 
 namespace CSharpTools.Tests.Websocket
 {
-    internal class ClientAndServer
+    internal class ClientAndServerT
     {
         private static Uri uri = new Uri("ws://127.0.0.1:8080/");
         private static WebsocketServiceWrapper serverService;

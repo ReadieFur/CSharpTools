@@ -1,7 +1,11 @@
 ﻿#region Websocket
-//CSharpTools.Tests.Websocket.Server.Main();
-//CSharpTools.Tests.Websocket.Client.Main();
-//CSharpTools.Tests.Websocket.ClientAndServer.Main();
+//CSharpTools.Tests.WebsocketTests.ServerT.Main();
+//CSharpTools.Tests.WebsocketTests.ClientT.Main();
+//CSharpTools.Tests.WebsocketTests.ClientAndServerT.Main();
 #endregion
 
-CSharpTools.Tests.SharedMemory.SharedMemory.Main();
+#region Shared memory
+//CSharpTools.Tests.SharedMemoryTests.SharedMemoryT.Main();
+#endregion
+
+#region Console

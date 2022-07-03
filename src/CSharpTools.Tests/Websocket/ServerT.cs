@@ -2,7 +2,7 @@
 
 namespace CSharpTools.Tests.Websocket
 {
-    internal class Server
+    internal class ServerT
     {
         public static void Main()
         {
