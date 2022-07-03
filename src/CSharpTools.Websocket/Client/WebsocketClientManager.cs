@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using WebSocketSharp;
 
 namespace CSharpTools.Websocket.Client
 {
@@ -17,7 +18,7 @@ namespace CSharpTools.Websocket.Client
             {
                 if (websockets.TryGetValue(uri, out websocketWrapper))
                 {
-                    if (!websocketWrapper.isAlive && !websocketWrapper.Connect())
+                    if (websocketWrapper.readyState != WebSocketState.Open && !websocketWrapper.Connect())
                     {
                         websocketWrapper = null;
                         TryRemoveConnection(uri);
@@ -27,7 +28,7 @@ namespace CSharpTools.Websocket.Client
                 }
 
                 websocketWrapper = new WebsocketClientWrapper(uri);
-                if (!websocketWrapper.Connect())
+                if (!websocketWrapper.Connect() || websocketWrapper.readyState != WebSocketState.Open)
                 {
                     websocketWrapper = null;
                     return false;

@@ -10,6 +10,7 @@ namespace CSharpTools.Websocket.Client
 {
     public class WebsocketClientWrapper
     {
+        private bool isFirstConnection = true;
         private WebSocket websocket;
         private bool shouldClose = false;
         private object queuedSendMutexObject = new object();
@@ -30,15 +31,26 @@ namespace CSharpTools.Websocket.Client
         {
             try { websocket = new WebSocket(uri.ToString()); }
             catch { return false; }
+            websocket.Connect();
 
 #if DEBUG
-            websocket.Log.Level = WebSocketSharp.LogLevel.Trace;
+            websocket.Log.Level = LogLevel.Trace;
 #endif
 
             websocket.OnOpen += Websocket_OnOpen;
             websocket.OnClose += Websocket_OnClose;
             websocket.OnError += Websocket_OnError;
             websocket.OnMessage += Websocket_OnMessage;
+
+            //If this is the first connection we are making, send an artificial onOpen message as the first one will be missed dusing this construction.
+            //Alternatively the caller of this function can run whatever code is needed if this method returns true.
+            if (isFirstConnection) Task.Run(() =>
+            {
+                isFirstConnection = false;
+                //We shouldn't have to wait more than 100 ms to send this artificial onOpen event.
+                Thread.Sleep(100);
+                onOpen?.Invoke();
+            });
 
             return true;
         }

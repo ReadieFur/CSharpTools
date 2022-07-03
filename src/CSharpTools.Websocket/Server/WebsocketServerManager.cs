@@ -22,7 +22,15 @@ namespace CSharpTools.Websocket.Server
                 if (websocketServers.TryGetValue(address, out WebsocketServerHelper server))
                 {
                     //The server must be started for the services to not be null.
-                    if (server.websocketServer.IsListening) server.websocketServer.Start();
+                    if (server.websocketServer.IsListening)
+                    {
+                        server.websocketServer.Start();
+                        if (!server.websocketServer.IsListening)
+                        {
+                            websocketServiceHelper = null;
+                            return false;
+                        }
+                    }
 
                     if (server.services.TryGetValue(path, out WebsocketServiceWrapper service))
                     {
@@ -52,6 +60,12 @@ namespace CSharpTools.Websocket.Server
                     websocketServer.Log.Level = WebSocketSharp.LogLevel.Trace;
 #endif
                     websocketServer.Start();
+                    if (!websocketServer.IsListening)
+                    {
+                        websocketServiceHelper = null;
+                        return false;
+                    }
+
                     websocketServers.Add(address, new WebsocketServerHelper(websocketServer));
 
                     websocketServer.AddWebSocketService<WebsocketService>(path);

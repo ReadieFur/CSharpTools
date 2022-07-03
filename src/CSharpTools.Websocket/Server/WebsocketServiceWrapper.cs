@@ -128,7 +128,7 @@ namespace CSharpTools.Websocket.Server
             else
             {
                 session.Context.WebSocket.Send(strMessage);
-                callback(true);
+                if (callback != null) callback(true);
             }
 
             return true;
