@@ -7,6 +7,12 @@ namespace CSharpTools.ConsoleExtensions
 {
     public static class Helpers
     {
+        #region TODO
+        /* TODO:
+        * Override the input and error output.
+        */
+        #endregion
+
         #region Private fields
         internal static readonly string[] args = Environment.GetCommandLineArgs();
 

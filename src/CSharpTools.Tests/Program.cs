@@ -9,7 +9,10 @@
 #endregion
 
 #region Console
-CSharpTools.Tests.ConsoleExtensions.LoggerT.Main();
+//CSharpTools.Tests.ConsoleExtensions.LoggerT.Main();
 //CSharpTools.Tests.ConsoleExtensions.LineManagerT.Main();
 //CSharpTools.Tests.ConsoleExtensions.ProgressBarT.Main();
 #endregion
+
+Console.WriteLine("Press enter to exit...");
+Console.ReadLine();

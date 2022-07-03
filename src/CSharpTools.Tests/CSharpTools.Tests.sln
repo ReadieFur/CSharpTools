@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpTools.Websocket", "..
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpTools.SharedMemory", "..\CSharpTools.SharedMemory\CSharpTools.SharedMemory.csproj", "{F6E6DC8B-E46B-4E23-B741-2CB5B5D60849}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpTools.ConsoleExtensions", "..\CSharpTools.Console\CSharpTools.ConsoleExtensions.csproj", "{99E65A55-3800-459C-A59B-E7EC2CE865A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpTools.ConsoleExtensions", "..\CSharpTools.ConsoleExtensions\CSharpTools.ConsoleExtensions.csproj", "{D974DBE0-AF46-4433-9C00-90429B90BCE5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,10 +29,10 @@ Global
 		{F6E6DC8B-E46B-4E23-B741-2CB5B5D60849}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6E6DC8B-E46B-4E23-B741-2CB5B5D60849}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6E6DC8B-E46B-4E23-B741-2CB5B5D60849}.Release|Any CPU.Build.0 = Release|Any CPU
-		{99E65A55-3800-459C-A59B-E7EC2CE865A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{99E65A55-3800-459C-A59B-E7EC2CE865A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{99E65A55-3800-459C-A59B-E7EC2CE865A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{99E65A55-3800-459C-A59B-E7EC2CE865A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D974DBE0-AF46-4433-9C00-90429B90BCE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D974DBE0-AF46-4433-9C00-90429B90BCE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D974DBE0-AF46-4433-9C00-90429B90BCE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D974DBE0-AF46-4433-9C00-90429B90BCE5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
