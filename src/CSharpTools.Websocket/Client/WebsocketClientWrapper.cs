@@ -14,7 +14,7 @@ namespace CSharpTools.Websocket.Client
         private bool shouldClose = false;
         private object queuedSendMutexObject = new object();
         private bool processingMessages = false;
-        private ConcurrentQueue<string> queuedMessages = new ConcurrentQueue<string>();
+        private ConcurrentQueue<(string, Action)> queuedMessages = new ConcurrentQueue<(string, Action)>();
 
         public Uri uri { get; private set; }
 
@@ -72,9 +72,9 @@ namespace CSharpTools.Websocket.Client
 
         private void Websocket_OnMessage(object sender, MessageEventArgs e) => onMessage?.Invoke(e);
 
-        public bool QueueSend(string message, int millisecondsTimeout = 0)
+        public bool QueueSend(object message, Action completed = null, int millisecondsTimeout = 100)
         {
-            queuedMessages.Enqueue(message);
+            queuedMessages.Enqueue((message.ToString(), completed));
 
             if (processingMessages) return true;
             
@@ -89,8 +89,17 @@ namespace CSharpTools.Websocket.Client
                 Task.Run(() =>
                 {
                     while (isAlive && queuedMessages.Count > 0)
-                        if (queuedMessages.TryDequeue(out string messageToSend))
-                            websocket.Send(messageToSend);
+                    {
+                        if (queuedMessages.TryDequeue(out var messageToSend))
+                        {
+                            websocket.Send(messageToSend.Item1);
+                            if (messageToSend.Item2 != null)
+                            {
+                                //Run the callback task without halting this loop.
+                                Task.Run(() => messageToSend.Item2());
+                            }
+                        }
+                    }
                 }).ContinueWith(_ => processingMessages = false);
             }
 

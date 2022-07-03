@@ -1,11 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 using WebSocketSharp.Server;
 
 namespace CSharpTools.Websocket.Server
 {
     public class WebsocketServiceWrapper
     {
+        private object queuedSendMutexObject = new object();
+        private bool processingMessages = false;
+        private ConcurrentQueue<(string, Action)> queuedMessages = new ConcurrentQueue<(string, Action)>();
+
+        private ConcurrentDictionary<string, (object, bool, ConcurrentQueue<(string, Action<bool>)>)> queuedIndividualMessages =
+            new ConcurrentDictionary<string, (object, bool, ConcurrentQueue<(string, Action<bool>)>)>();
+
         public Uri hostUri { get; private set; }
         public WebSocketServiceHost webSocketServiceManager { get; private set; }
         public Dictionary<string, WebsocketService> websocketServices { get; private set; } = new Dictionary<string, WebsocketService>();
@@ -59,8 +69,107 @@ namespace CSharpTools.Websocket.Server
             onOpen?.Invoke(id);
         }
 
-        public void BroadcastAsync(object message, Action completed = default) =>
-            webSocketServiceManager.Sessions.BroadcastAsync(message.ToString(), completed);
-        public void Broadcast(object message) => webSocketServiceManager.Sessions.Broadcast(message.ToString());
+        public void Broadcast(object message, bool async = false, Action completed = null)
+        {
+            string strMessage = message.ToString();
+            if (async) webSocketServiceManager.Sessions.BroadcastAsync(strMessage, completed);
+            else
+            {
+                webSocketServiceManager.Sessions.Broadcast(strMessage);
+                completed();
+            }
+        }
+
+        public bool BroadcastQueueSend(object message, Action completed = null, int millisecondsTimeout = 100)
+        {
+            if (webSocketServiceManager.Sessions.Count == 0) return true;
+
+            queuedMessages.Enqueue((message.ToString(), completed));
+
+            if (processingMessages) return true;
+
+            //Lock while we check the count.
+            if (!Monitor.TryEnter(queuedSendMutexObject, millisecondsTimeout)) return false;
+
+            //setup the task if needed.
+            if (queuedMessages.Count > 0)
+            {
+                processingMessages = true;
+                //Leave this task to run and let the rest of this method continue.
+                Task.Run(() =>
+                {
+                    while (webSocketServiceManager.Sessions.Count > 0 && queuedMessages.Count > 0)
+                    {
+                        if (queuedMessages.TryDequeue(out var messageToSend))
+                        {
+                            webSocketServiceManager.Sessions.Broadcast(messageToSend.Item1);
+                            if (messageToSend.Item2 != null)
+                            {
+                                //Run the callback task without halting this loop.
+                                Task.Run(() => messageToSend.Item2());
+                            }
+                        }
+                    }
+                }).ContinueWith(_ => processingMessages = false);
+            }
+
+            Monitor.Exit(queuedSendMutexObject);
+            return true;
+        }
+
+        public bool Send(string id, object message, bool async = false, Action<bool> callback = null)
+        {
+            IWebSocketSession session;
+            if (!webSocketServiceManager.Sessions.TryGetSession(id, out session)) return false;
+
+            string strMessage = message.ToString();
+
+            if (async) session.Context.WebSocket.SendAsync(strMessage, callback);
+            else
+            {
+                session.Context.WebSocket.Send(strMessage);
+                callback(true);
+            }
+
+            return true;
+        }
+
+        public bool QueueSend(string id, object message, Action<bool> callback = null, int millisecondsTimeout = 100)
+        {
+            IWebSocketSession session;
+            if (webSocketServiceManager.Sessions.Count == 0
+                || !webSocketServiceManager.Sessions.TryGetSession(id, out session)) return false;
+
+            var queuedDataForID = queuedIndividualMessages.GetOrAdd(id, (new object(), false, new ConcurrentQueue<(string, Action<bool>)>()));
+            queuedDataForID.Item3.Enqueue((message.ToString(), callback));
+
+            if (!Monitor.TryEnter(queuedDataForID.Item1, millisecondsTimeout)) return false;
+
+            if (queuedDataForID.Item3.Count > 0)
+            {
+                queuedDataForID.Item2 = true;
+                Task.Run(() =>
+                {
+                    while (webSocketServiceManager.Sessions.TryGetSession(id, out _) && queuedDataForID.Item3.Count > 0)
+                    {
+                        if (queuedDataForID.Item3.TryDequeue(out var messageToSend))
+                        {
+                            session.Context.WebSocket.Send(messageToSend.Item1);
+                            if (messageToSend.Item2 != null) Task.Run(() => messageToSend.Item2(true));
+                        }
+                    }
+
+                    lock (queuedDataForID.Item1)
+                    {
+                        if (!webSocketServiceManager.Sessions.TryGetSession(id, out _) || queuedDataForID.Item3.Count == 0)
+                            queuedIndividualMessages.TryRemove(id, out _);
+                        else queuedDataForID.Item2 = false;
+                    }
+                });
+            }
+
+            Monitor.Exit(queuedSendMutexObject);
+            return true;
+        }
     }
 }
