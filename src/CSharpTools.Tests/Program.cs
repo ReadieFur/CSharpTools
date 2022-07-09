@@ -9,6 +9,7 @@
 #endregion
 
 #region Console
+CSharpTools.Tests.ConsoleExtensions.Testing.Main();
 //CSharpTools.Tests.ConsoleExtensions.LoggerT.Main();
 //CSharpTools.Tests.ConsoleExtensions.LineManagerT.Main();
 //CSharpTools.Tests.ConsoleExtensions.ProgressBarT.Main();

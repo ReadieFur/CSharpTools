@@ -8,7 +8,7 @@ namespace CSharpTools.ConsoleExtensions
     public static class Output
     {
         #region Private fields
-        private static ConcurrentDictionary<string, (int, object)> lineStore = new ConcurrentDictionary<string, (int, object)>();
+        private static ConcurrentDictionary<string, (int, object?)> lineStore = new ConcurrentDictionary<string, (int, object?)>();
         #endregion
 
         #region Private methods
@@ -40,13 +40,13 @@ namespace CSharpTools.ConsoleExtensions
         {
             lock (lineStore)
             {
-                IOrderedEnumerable<KeyValuePair<string, (int, object)>>? lineStoreOrdered = lineStore.ToList().OrderBy(kv => kv.Value.Item1);
+                IOrderedEnumerable<KeyValuePair<string, (int, object?)>>? lineStoreOrdered = lineStore.ToList().OrderBy(kv => kv.Value.Item1);
                 int lastLineIndex = -1;
-                foreach (KeyValuePair<string, (int, object)> pair in lineStoreOrdered)
+                foreach (KeyValuePair<string, (int, object?)> pair in lineStoreOrdered)
                 {
                     if (pair.Value.Item1 == ++lastLineIndex) continue;
 
-                    Helpers.QueueAction(() =>
+                    Helpers.QueueAction((cancellationToken) =>
                     {
                         int lineIndex = Console.WindowHeight - pair.Value.Item1 - 1;
                         if (lineIndex < 0) { return; }
@@ -83,15 +83,9 @@ namespace CSharpTools.ConsoleExtensions
             return message;
         }
 
-        public static Task QueueWrite(object? message)
-        {
-            return Helpers.QueueAction(() => { Console.Write(message); });
-        }
-
-        public static Task QueueWriteLine(object? message)
-        {
-            return Helpers.QueueAction(() => { Console.WriteLine(message); });
-        }
+        public static Task Write(object? message, bool queueTask = true) => Helpers.Run((_) => Console.Write(message), queueTask);
+        
+        public static Task WriteLine(object? message, bool queueTask = true) => Helpers.Run((_) => Console.WriteLine(message), queueTask);
 
         /// <summary>
         /// NOTE: Only set 'queueTask' to 'false' IF you are running it from within a queued task.
@@ -100,15 +94,14 @@ namespace CSharpTools.ConsoleExtensions
         {
             if (fromLeft > Console.WindowWidth - 1 || fromTop > Console.WindowHeight - 1) throw new IndexOutOfRangeException();
 
-            Action action = () =>
+            //It is safe to discard the CancellationToken here as the task below won't take more than the max timeout.
+            return Helpers.Run((_) =>
             {
                 (int currentX, int currentY) = (Console.CursorLeft, Console.CursorTop);
                 Console.SetCursorPosition(fromLeft, fromTop);
                 Console.Write(message);
                 Console.SetCursorPosition(currentX, currentY);
-            };
-
-            return queueTask ? Helpers.QueueAction(action) : Task.Run(action);
+            }, queueTask);
         }
 
         /// <summary>
@@ -118,15 +111,13 @@ namespace CSharpTools.ConsoleExtensions
         {
             if (lineIndex > Console.WindowWidth - 1) throw new IndexOutOfRangeException();
 
-            Action action = () =>
+            return Helpers.Run((_) =>
             {
                 (int currentX, int currentY) = (Console.CursorLeft, Console.CursorTop);
                 Console.SetCursorPosition(0, lineIndex);
                 Console.Write("\r" + new string(' ', Console.WindowWidth - 1) + "\r");
                 Console.SetCursorPosition(currentX, currentY);
-            };
-
-            return queueTask ? Helpers.QueueAction(action) : Task.Run(action);
+            }, queueTask);
         }
 
         public static string ReserveLine()
@@ -151,11 +142,11 @@ namespace CSharpTools.ConsoleExtensions
         {
             lock (lineStore)
             {
-                if (!lineStore.TryGetValue(id, out (int, object) pair)) throw new KeyNotFoundException();
+                if (!lineStore.TryGetValue(id, out (int, object?) pair)) throw new KeyNotFoundException();
 
                 if (newData != null) pair.Item2 = newData;
 
-                Action action = () =>
+                return Helpers.Run((_) =>
                 {
                     int lineIndex = Console.WindowHeight - pair.Item1 - 1;
                     if (lineIndex < 0) { return; }
@@ -164,9 +155,7 @@ namespace CSharpTools.ConsoleExtensions
                     Console.SetCursorPosition(0, lineIndex);
                     Console.Write(FormatToWidth(pair.Item2));
                     Console.SetCursorPosition(currentX, currentY);
-                };
-
-                return queueTask ? Helpers.QueueAction(action) : Task.Run(action);
+                }, queueTask);
             }
         }
 
@@ -177,17 +166,15 @@ namespace CSharpTools.ConsoleExtensions
         {
             lock (lineStore)
             {
-                if (!lineStore.TryRemove(id, out (int, object) pair)) throw new KeyNotFoundException();
+                if (!lineStore.TryRemove(id, out (int, object?) pair)) throw new KeyNotFoundException();
 
-                Action action = () =>
+                return Helpers.Run((_) =>
                 {
                     int lineIndex = Console.WindowHeight - pair.Item1 - 1;
                     if (lineIndex < 0) { return; }
                     ClearLine(lineIndex, false).Wait();
                     OrderLineStore();
-                };
-
-                return queueTask ? Helpers.QueueAction(action) : Task.Run(action);
+                }, queueTask);
             }
         }
         #endregion

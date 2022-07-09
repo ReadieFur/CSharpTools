@@ -121,7 +121,7 @@ namespace CSharpTools.ConsoleExtensions
             }
 
             Task task;
-            if (_useNewLine) task = Helpers.QueueAction(() => { Console.WriteLine(line); });
+            if (_useNewLine) task = Helpers.QueueAction((_) => { Console.WriteLine(line); });
             else if (_targetLineID != null) task = Output.UpdateLine(_targetLineID, line);
             else task = Output.WriteAt(0, (int)_lineIndex!, line);
 

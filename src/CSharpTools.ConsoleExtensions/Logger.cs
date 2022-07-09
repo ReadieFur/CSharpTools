@@ -46,10 +46,12 @@ namespace CSharpTools.ConsoleExtensions
         public static Task Log(ELogLevel _logMode, object message, bool queue = true)
         {
             if (_logMode < logLevel) return Task.FromResult(true);
-            Action action = () =>
+            return Helpers.Run((cancellationToken) =>
             {
                 string prefix = $"[{Enum.GetName(typeof(ELogLevel), _logMode)!.ToUpper()}]";
-
+                
+                if (cancellationToken.IsCancellationRequested) return;
+                
                 if (useColour)
                 {
                     ConsoleColor consoleColour = GetConsoleColourForLogMode(_logMode);
@@ -61,12 +63,8 @@ namespace CSharpTools.ConsoleExtensions
                     Console.WriteLine($" {message}");
                     Console.ResetColor();
                 }
-                else
-                {
-                    Console.WriteLine($"{prefix} {message}");
-                }
-            };
-            return queue ? Helpers.QueueAction(action) : Task.Run(action);
+                else Console.WriteLine($"{prefix} {message}");
+            }, queue);
         }
 
         /// <summary>

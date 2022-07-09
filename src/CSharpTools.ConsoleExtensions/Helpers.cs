@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace CSharpTools.ConsoleExtensions
 {
@@ -14,10 +15,10 @@ namespace CSharpTools.ConsoleExtensions
         #endregion
 
         #region Private fields
-        internal static readonly string[] args = Environment.GetCommandLineArgs();
-
-        private static object lockObject = new object();
-        private static ConcurrentQueue<Task> tasksToSync = new ConcurrentQueue<Task>();
+        public static readonly float safeConsoleWidthMultiplier = 0.75f;
+        private static readonly object lockObject = new object();
+        private static readonly TimeSpan taskTimeout = TimeSpan.FromMilliseconds(1000);
+        private static readonly ConcurrentQueue<Task> tasksToSync = new ConcurrentQueue<Task>();
 
         private static bool inputLocked = false;
         /*private static object stdInLockObject = new object();
@@ -29,6 +30,7 @@ namespace CSharpTools.ConsoleExtensions
         #endregion
 
         #region Public fields
+        public static readonly string[] commandLineArgs = Environment.GetCommandLineArgs();
         public static event Action<int, int, int, int>? internalConsoleResized; //Access priority.
         public static event Action<int, int, int, int>? consoleResized;
         #endregion
@@ -37,58 +39,74 @@ namespace CSharpTools.ConsoleExtensions
         static Helpers()
         {
             //Static loop.
-            new Timer(
-                (state) =>
+            new Timer((state) =>
+            {
+                if (!Monitor.TryEnter(lockObject)) return;
+
+                while (tasksToSync.Count > 0) if (tasksToSync.TryDequeue(out Task task)) task.RunSynchronously();
+
+                /*Any code added to the taskQueue dosen't need to be waited here because:
+                * - It will (most likley) be at the beginning of the queue.
+                * - Will cause the program to halt becuase it will wait for the task to complete but the object is locked so it cannot run.
+                */
+                
+                int _consoleWidth = Console.WindowWidth;
+                int _consoleHeight = Console.WindowHeight;
+                if (consoleWidth != _consoleWidth || consoleHeight != _consoleHeight)
                 {
-                    if (!Monitor.TryEnter(lockObject)) { return; }
+                    int oldWidth = consoleWidth;
+                    int oldHeight = consoleHeight;
+                    consoleWidth = _consoleWidth;
+                    consoleHeight = _consoleHeight;
 
-                    while (tasksToSync.Count > 0) if (tasksToSync.TryDequeue(out Task? task) && task != null) task.RunSynchronously();
+                    internalConsoleResized?.Invoke(oldWidth, oldHeight, consoleWidth, consoleHeight);
+                    consoleResized?.Invoke(oldWidth, oldHeight, consoleWidth, consoleHeight);
+                }
 
-                    /*Any code added to the taskQueue dosen't need to be waited here because:
-                    * - It will (most likley) be at the beginning of the queue.
-                    * - Will cause the program to halt becuase it will wait for the task to complete but the object is locked so it cannot run.
-                    */
+                Monitor.Exit(lockObject);
+            }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1)); //1ms wait between loops. Ideally there would be none.
+        }
+        #endregion
 
-                    int _consoleWidth = Console.WindowWidth;
-                    int _consoleHeight = Console.WindowHeight;
-                    if (consoleWidth != _consoleWidth || consoleHeight != _consoleHeight)
-                    {
-                        int oldWidth = consoleWidth;
-                        int oldHeight = consoleHeight;
-                        consoleWidth = _consoleWidth;
-                        consoleHeight = _consoleHeight;
-
-                        internalConsoleResized?.Invoke(oldWidth, oldHeight, consoleWidth, consoleHeight);
-                        consoleResized?.Invoke(oldWidth, oldHeight, consoleWidth, consoleHeight);
-                    }
-
-                    Monitor.Exit(lockObject);
-                },
-                null,
-                TimeSpan.Zero,
-                TimeSpan.FromMilliseconds(1) //1ms wait between loops. Ideally there would be none.
-            );
+        #region Internal methods
+        internal static Task<bool> Run(Action<CancellationToken> action, bool queueTask = true)
+        {
+            if (queueTask) return QueueAction(action);
+            else
+            {
+                action(new CancellationToken());
+                return Task.FromResult(true);
+            }
         }
         #endregion
 
         #region Public methods
-        public static int GetSafeConsoleWidth()
-        {
-            return (int)Math.Round(Console.WindowWidth * 0.75, 0);
-        }
+        public static int GetSafeConsoleWidth() => (int)Math.Round(Console.WindowWidth * safeConsoleWidthMultiplier, 0);
 
-        public static Task<T> QueueTask<T>(Func<T> func)
+        public static async Task<bool> QueueAction(Action<CancellationToken> action)
         {
-            Task<T> task = new Task<T>(func);
-            tasksToSync.Enqueue(task);
-            return task;
-        }
+            //My originaly plan was to somehow throw the task to stop execution of the task but this has proven to be MUCH harder than I thought.
+            StackTrace stackTrace = new StackTrace();
+            Task<bool> task = new Task<bool>(() =>
+            {
+                CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+                int firstCompletedTaskIndex = Task.WaitAny(Task.Delay(taskTimeout), Task.Run(() => action(cancellationTokenSource.Token)));
+                if (firstCompletedTaskIndex == 0)
+                {
+                    Logger.Trace($"Queued task timed out after {taskTimeout.TotalMilliseconds}ms." +
+                        " Continuing to the next queued task, console output conflicts may occur." +
+                        //$" Stack trace at {stackTrace.GetFrame(3).GetMethod().ReflectedType.FullName}",
+                        $" Stack trace at: {stackTrace.ToString().Substring(6)}",
+                        false);
 
-        public static Task QueueAction(Action action)
-        {
-            Task task = new Task(action);
+                    cancellationTokenSource.Cancel();
+
+                    return false;
+                }
+                else return true;
+            });
             tasksToSync.Enqueue(task);
-            return task;
+            return await task;
         }
 
         /// <summary>
@@ -101,7 +119,7 @@ namespace CSharpTools.ConsoleExtensions
             if (inputLocked) { throw new Exception("stdIn already locked."); }
             inputLocked = true;
             try { Task.WaitAll(new Task[] { new Task(() => { while (true) { } }) }, cancellationToken); }
-            catch { }
+            catch {}
             inputLocked = false;
         }
 

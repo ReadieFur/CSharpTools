@@ -4,14 +4,14 @@ namespace CSharpTools.Tests.ConsoleExtensions
 {
     internal class LoggerT
     {
-        public static void Main()
+        public static async void Main()
         {
-            Logger.Trace("Trace.").Wait();
-            Logger.Debug("Debug.").Wait();
-            Logger.Info("Info.").Wait();
-            Logger.Warning("Warning.").Wait();
-            Logger.Error("Error.").Wait();
-            Logger.Critical("Critical.").Wait();
+            await Logger.Trace("Trace.");
+            await Logger.Debug("Debug.");
+            await Logger.Info("Info.");
+            await Logger.Warning("Warning.");
+            await Logger.Error("Error.");
+            await Logger.Critical("Critical.");
         }
     }
 }
