@@ -16,9 +16,10 @@ namespace CSharpTools.ConsoleExtensions
 
         #region Private fields
         public static readonly float safeConsoleWidthMultiplier = 0.75f;
-        private static readonly object lockObject = new object();
+        private static readonly object consoleLockObject = new object();
         private static readonly TimeSpan taskTimeout = TimeSpan.FromMilliseconds(1000);
         private static readonly ConcurrentQueue<Task> tasksToSync = new ConcurrentQueue<Task>();
+        private static readonly Timer loop; //This requires a variable so that it remains referenced and does not get collected by the GC ending the loop.
 
         private static bool inputLocked = false;
         /*private static object stdInLockObject = new object();
@@ -39,17 +40,19 @@ namespace CSharpTools.ConsoleExtensions
         static Helpers()
         {
             //Static loop.
-            new Timer((state) =>
+            loop = new Timer((state) =>
             {
-                if (!Monitor.TryEnter(lockObject)) return;
-
-                while (tasksToSync.Count > 0) if (tasksToSync.TryDequeue(out Task task)) task.RunSynchronously();
+                if (Monitor.TryEnter(consoleLockObject, 0))
+                {
+                    while (tasksToSync.Count > 0) if (tasksToSync.TryDequeue(out Task task)) task.RunSynchronously();
+                    Monitor.Exit(consoleLockObject);
+                }
 
                 /*Any code added to the taskQueue dosen't need to be waited here because:
                 * - It will (most likley) be at the beginning of the queue.
                 * - Will cause the program to halt becuase it will wait for the task to complete but the object is locked so it cannot run.
                 */
-                
+
                 int _consoleWidth = Console.WindowWidth;
                 int _consoleHeight = Console.WindowHeight;
                 if (consoleWidth != _consoleWidth || consoleHeight != _consoleHeight)
@@ -62,8 +65,6 @@ namespace CSharpTools.ConsoleExtensions
                     internalConsoleResized?.Invoke(oldWidth, oldHeight, consoleWidth, consoleHeight);
                     consoleResized?.Invoke(oldWidth, oldHeight, consoleWidth, consoleHeight);
                 }
-
-                Monitor.Exit(lockObject);
             }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1)); //1ms wait between loops. Ideally there would be none.
         }
         #endregion
