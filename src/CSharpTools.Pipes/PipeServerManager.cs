@@ -3,16 +3,18 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Threading;
 
 namespace CSharpTools.Pipes
 {
     public class PipeServerManager : IDisposable
     {
         private readonly object lockObject = new object();
+        private Mutex mutex;
         private readonly ConcurrentDictionary<Guid, PipeServer> pipeServers = new ConcurrentDictionary<Guid, PipeServer>();
         private readonly int bufferSize;
         private readonly int maxAllowedServerInstances;
-
+        
         public string ipcName { get; private set; }
         public bool isDisposed { get; private set; } = false;
         public ICollection<Guid> pipeServerIDs => pipeServers.Keys;
@@ -23,6 +25,9 @@ namespace CSharpTools.Pipes
 
         public PipeServerManager(string ipcName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances)
         {
+            mutex = new Mutex(false, $"mutex_ipcName", out bool created);
+            if (!created) throw new IOException($"A pipe server with the name '{ipcName}' already exists.");
+
             this.ipcName = ipcName;
             this.bufferSize = bufferSize;
             this.maxAllowedServerInstances = maxAllowedServerInstances;
@@ -36,6 +41,7 @@ namespace CSharpTools.Pipes
             {
                 if (isDisposed) return;
                 foreach (PipeServer pipeServer in pipeServers.Values) pipeServer.Dispose();
+                mutex.Dispose();
                 isDisposed = true;
             }
         }
