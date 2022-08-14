@@ -8,8 +8,9 @@ namespace CSharpTools.Tests.ConsoleExtensions
 
         public static void Main()
         {
-            MemoryTests();
+            //MemoryTests();
             //TimeoutTests();
+            ObjectDump();
         }
 
         private static async void MemoryTests()
@@ -54,6 +55,25 @@ namespace CSharpTools.Tests.ConsoleExtensions
                 if (cancellationToken.IsCancellationRequested) return;
                 Console.WriteLine(2);
             });
+        }
+
+        private static async void ObjectDump()
+        {
+            await Output.WriteLine(Output.GetPropertiesString("Hello, World!"));
+            await Output.WriteLine(Output.GetPropertiesString(new TestObject1()));
+        }
+
+        private class TestObject1
+        {
+            public int publicInt = 1;
+            private int privateInt = 2;
+            internal TestObject2 nestedObject = new TestObject2();
+        }
+
+        private class TestObject2
+        {
+            public int publicInt = 3;
+            private int privateInt = 4;
         }
     }
 }

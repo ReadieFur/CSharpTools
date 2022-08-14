@@ -8,7 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CSharpTools.ConsoleExtensions\CSharpTools.ConsoleExtensions.csproj" />
+    <ProjectReference Include="..\CSharpTools.Pipes\CSharpTools.Pipes.csproj" />
     <ProjectReference Include="..\CSharpTools.SharedMemory\CSharpTools.SharedMemory.csproj" />
     <ProjectReference Include="..\CSharpTools.Websocket\CSharpTools.Websocket.csproj" />
   </ItemGroup>
