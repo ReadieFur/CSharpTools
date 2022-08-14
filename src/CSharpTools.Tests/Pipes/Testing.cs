@@ -41,6 +41,7 @@ namespace CSharpTools.Tests.Pipes
             for (int i = 0; i < numberOfClientsToCreate; i++) clients[i].SendMessage(Helpers.Serialize(i));
 
             pipeServerManager.BroadcastMessage(Helpers.Serialize(pipeServerManager.pipeServerIDs.Count));
+            pipeServerManager.SendMessage(pipeServerManager.pipeServerIDs.First(), Helpers.Serialize(4));
 
             //Console.ReadLine();
             
