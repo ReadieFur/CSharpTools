@@ -3,6 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Reflection;
+using System.Collections;
+
 namespace CSharpTools.ConsoleExtensions
 {
     public static class Output
@@ -176,6 +179,78 @@ namespace CSharpTools.ConsoleExtensions
                     OrderLineStore();
                 }, queueTask);
             }
+        }
+
+        public static string GetPropertiesString(object obj)
+        {
+            Type objType = obj.GetType();
+            if (objType.IsPrimitive) return obj.ToString();
+            
+            string message = "";
+            foreach (PropertyInfo property in objType.GetProperties(
+                BindingFlags.Public
+                | BindingFlags.NonPublic
+                | BindingFlags.Instance
+                | BindingFlags.Static))
+            {
+                message += $"'{property.Name}'<{property.PropertyType.FullName}>: ";
+
+                object value;
+                try { value = property.GetValue(obj); }
+                catch (TargetParameterCountException)
+                {
+                    //Property should be iterable.
+                    try
+                    {
+                        string tmpMessage = "[\n";
+                        //Only work with int32 values for now.
+                        for (int i = 0; i < int.MaxValue; i++)
+                        {
+                            try
+                            {
+                                object? innerValue = property.GetValue(obj, new object[] { i });
+                                if (innerValue == null) tmpMessage += $"\t{i}<null>: null\n";
+                                else
+                                {
+                                    string typeString = $"<{innerValue.GetType().FullName}>";
+                                    try { tmpMessage += $"\t{i}{typeString}: {GetPropertiesString(innerValue)}\n"; }
+                                    catch { tmpMessage += $"\t{i}{typeString}: ???\n"; }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                //if (ex.Message.Contains("cannot be converted to type")) throw ex;
+                                if (ex.InnerException != null && ex.InnerException.Message.Contains("outside the bounds")) break;
+                                else throw ex;
+                            }
+                        }
+                        message = message.Substring(0, message.Length - 3) + "[" + typeof(int).FullName + "]>:\n" + tmpMessage + "]\n";
+                        continue;
+                    }
+                    catch
+                    {
+                        message += "???\n";
+                        continue;
+                    }
+                }
+                catch
+                {
+                    message += "???\n";
+                    continue;
+                }
+
+                //Check if the property is a primitive.
+                if (property.PropertyType.IsPrimitive)
+                {
+                    message += value.ToString() + "\n";
+                    continue;
+                }
+
+                //Otherwise recurse.
+                try { message += GetPropertiesString(value) + "\n"; }
+                catch { message += "???\n"; }
+            }
+            return message;
         }
         #endregion
     }
