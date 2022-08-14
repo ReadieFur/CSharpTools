@@ -1,4 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipes;
 
 namespace CSharpTools.Pipes
@@ -7,10 +10,10 @@ namespace CSharpTools.Pipes
     {
         private readonly object lockObject = new object();
         private readonly ConcurrentDictionary<Guid, PipeServer> pipeServers = new ConcurrentDictionary<Guid, PipeServer>();
-        private int bufferSize { get; init; }
-        private int maxAllowedServerInstances { get; init; }
+        private readonly int bufferSize;
+        private readonly int maxAllowedServerInstances;
 
-        public string ipcName { get; init; }
+        public string ipcName { get; private set; }
         public bool isDisposed { get; private set; } = false;
         public ICollection<Guid> pipeServerIDs => pipeServers.Keys;
         public event Action<Guid>? OnConnect;

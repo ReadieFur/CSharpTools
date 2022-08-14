@@ -7,7 +7,7 @@ namespace CSharpTools.Pipes
 {
     public class PipeClient : APipe<NamedPipeClientStream>
     {
-        protected override PipeStream _pipe { get; init; }
+        protected override PipeStream _pipe { get; set; }
 
         public PipeClient(string ipcName, int bufferSize) : base(ipcName, bufferSize)
         {

@@ -1,13 +1,16 @@
 ﻿//#define USE_MESSAGE_MODE
 
+using System;
+using System.IO;
 using System.IO.Pipes;
+using System.Threading;
 
 namespace CSharpTools.Pipes
 {
     public abstract class APipe<TPipe> : IDisposable where TPipe : PipeStream
     {
         protected readonly object lockObject = new object();
-        protected abstract PipeStream _pipe { get; init; }
+        protected abstract PipeStream _pipe { get; set; }
         protected virtual TPipe pipe { get => (TPipe)_pipe; }
         protected byte[] buffer { get; set; }
         //protected abstract ReadOnlyMemory<byte> lastData { get; set; }
@@ -15,8 +18,8 @@ namespace CSharpTools.Pipes
         public bool isConnected { get => pipe.IsConnected; }
         public bool isDisposed { get; protected set; } = false;
 
-        public string ipcName { get; private init; }
-        public int bufferSize { get; private init; }
+        public string ipcName { get; private set; }
+        public int bufferSize { get; private set; }
         public event Action? OnConnect;
         public event Action<ReadOnlyMemory<byte>>? OnMessage;
         public event Action? OnDispose;
@@ -103,7 +106,7 @@ namespace CSharpTools.Pipes
             else if (data.Length == 0) throw new IOException("The message is empty.");
             else if (data.Length > bufferSize) throw new IOException("The message is too large.");
 
-            await _pipe.WriteAsync(data);
+            await _pipe.WriteAsync(data.ToArray(), 0, bufferSize);
         }
     }
 }

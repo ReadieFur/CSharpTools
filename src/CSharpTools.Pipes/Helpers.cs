@@ -1,4 +1,6 @@
-﻿using System.Runtime.Serialization.Formatters.Binary;
+﻿using System;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace CSharpTools.Pipes
 {
