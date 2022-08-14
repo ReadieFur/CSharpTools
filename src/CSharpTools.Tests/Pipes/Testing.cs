@@ -21,9 +21,9 @@ namespace CSharpTools.Tests.Pipes
 #endif
 #if true
             PipeServerManager pipeServerManager = new(ipcName, bufferSize);
-            pipeServerManager.OnConnect += PipeServerManager_OnConnect;
-            pipeServerManager.OnMessage += PipeServerManager_OnMessage;
-            pipeServerManager.OnDispose += PipeServerManager_OnDispose;
+            pipeServerManager.onConnect += PipeServerManager_OnConnect;
+            pipeServerManager.onMessage += PipeServerManager_OnMessage;
+            pipeServerManager.onDispose += PipeServerManager_OnDispose;
             
             List<PipeClient> clients = new();
             for (int i = 0; i < numberOfClientsToCreate; i++)
@@ -47,9 +47,9 @@ namespace CSharpTools.Tests.Pipes
         private static PipeClient CreateClient(int i)
         {
             PipeClient client = new(ipcName, bufferSize);
-            client.OnConnect += () => Client_OnConnect(i);
-            client.OnMessage += (data) => Client_OnMessage(i, data);
-            client.OnDispose += () => Client_OnDispose(i);
+            client.onConnect += () => Client_OnConnect(i);
+            client.onMessage += (data) => Client_OnMessage(i, data);
+            client.onDispose += () => Client_OnDispose(i);
             return client;
         }
 

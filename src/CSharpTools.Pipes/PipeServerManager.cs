@@ -19,10 +19,10 @@ namespace CSharpTools.Pipes
         public string ipcName { get; private set; }
         public bool isDisposed { get; private set; } = false;
         public ICollection<Guid> pipeServerIDs => pipeServers.Keys;
-        public event Action<Guid>? OnConnect;
+        public event Action<Guid>? onConnect;
         //ReadOnlySpan would be faster and more efficent I believe but it cannot be used in this sceneario.
-        public event Action<Guid, ReadOnlyMemory<byte>>? OnMessage;
-        public event Action<Guid>? OnDispose;
+        public event Action<Guid, ReadOnlyMemory<byte>>? onMessage;
+        public event Action<Guid>? onDispose;
 
         public PipeServerManager(string ipcName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances)
         {
@@ -58,7 +58,7 @@ namespace CSharpTools.Pipes
 
                 //Create the new pipe.
                 PipeServer pipeServer = new(ipcName, bufferSize, maxAllowedServerInstances);
-                pipeServer.OnConnect += PipeServer_OnConnect;
+                pipeServer.onConnect += PipeServer_OnConnect;
 
                 pendingPipeServer = pipeServer;
             }
@@ -88,16 +88,16 @@ namespace CSharpTools.Pipes
             catch (IOException) { }
 
             //Adding the event listners here prevents the temporary pipe (the one waiting for a new connection) from firing events.
-            pipeServer.OnMessage += (data) => OnMessage?.Invoke(guid, data);
-            pipeServer.OnDispose += () => PipeServer_OnDispose(guid);
+            pipeServer.onMessage += (data) => onMessage?.Invoke(guid, data);
+            pipeServer.onDispose += () => PipeServer_OnDispose(guid);
 
             //Fire the on-connection event for this new pipe.
-            OnConnect?.Invoke(guid);
+            onConnect?.Invoke(guid);
         }
 
         private void PipeServer_OnDispose(Guid guid)
         {
-            OnDispose?.Invoke(guid);
+            onDispose?.Invoke(guid);
 
             pipeServers.TryRemove(guid, out _);
 

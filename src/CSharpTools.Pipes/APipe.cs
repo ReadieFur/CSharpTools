@@ -20,9 +20,9 @@ namespace CSharpTools.Pipes
 
         public string ipcName { get; private set; }
         public int bufferSize { get; private set; }
-        public event Action? OnConnect;
-        public event Action<ReadOnlyMemory<byte>>? OnMessage;
-        public event Action? OnDispose;
+        public event Action? onConnect;
+        public event Action<ReadOnlyMemory<byte>>? onMessage;
+        public event Action? onDispose;
 
         public APipe(string ipcName, int bufferSize)
         {
@@ -39,7 +39,7 @@ namespace CSharpTools.Pipes
             lock (lockObject)
             {
                 if (isDisposed) return;
-                OnDispose?.Invoke();
+                onDispose?.Invoke();
                 _pipe.Close();
                 _pipe.Dispose();
                 isDisposed = true;
@@ -49,7 +49,7 @@ namespace CSharpTools.Pipes
         protected virtual void OnConnectCallback()
         {
             connectedResetEvent.Set();
-            OnConnect?.Invoke();
+            onConnect?.Invoke();
             BeginRead();
         }
 
@@ -88,7 +88,7 @@ namespace CSharpTools.Pipes
             //lastData = data;
 
             //Dispatch the OnMessage event.
-            OnMessage?.Invoke(data);
+            onMessage?.Invoke(data);
 
             //Clear the byte stream for new messages.
             buffer = new byte[bufferSize];
