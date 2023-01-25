@@ -26,7 +26,7 @@ namespace CSharpTools.Pipes
 
         public PipeServerManager(string ipcName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances)
         {
-            mutex = new Mutex(false, $"mutex_ipcName", out bool created);
+            mutex = new Mutex(false, $"mutex_{ipcName}", out bool created);
             if (!created) throw new IOException($"A pipe server with the name '{ipcName}' already exists.");
 
             this.ipcName = ipcName;
