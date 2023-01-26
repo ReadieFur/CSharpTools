@@ -47,9 +47,9 @@ namespace CSharpTools.Tests.Pipes
         private static PipeClient CreateClient(int i)
         {
             PipeClient client = new(ipcName, bufferSize);
-            client.onConnect += () => Client_OnConnect(i);
-            client.onMessage += (data) => Client_OnMessage(i, data);
-            client.onDispose += () => Client_OnDispose(i);
+            client.OnConnect += () => Client_OnConnect(i);
+            client.OnMessage += (data) => Client_OnMessage(i, data);
+            client.OnDispose += () => Client_OnDispose(i);
             return client;
         }
 

@@ -15,21 +15,21 @@ namespace CSharpTools.Pipes
         protected byte[] buffer { get; set; }
         //protected abstract ReadOnlyMemory<byte> lastData { get; set; }
         protected readonly ManualResetEventSlim connectedResetEvent = new ManualResetEventSlim();
-        public bool isConnected { get => pipe.IsConnected; }
-        public bool isDisposed { get; protected set; } = false;
+        public bool IsConnected { get => pipe.IsConnected; }
+        public bool IsDisposed { get; protected set; } = false;
 
-        public string ipcName { get; private set; }
-        public int bufferSize { get; private set; }
-        public event Action? onConnect;
-        public event Action<ReadOnlyMemory<byte>>? onMessage;
-        public event Action? onDispose;
+        public string IPCName { get; private set; }
+        public int BufferSize { get; private set; }
+        public event Action? OnConnect;
+        public event Action<ReadOnlyMemory<byte>>? OnMessage;
+        public event Action? OnDispose;
 
         public APipe(string ipcName, int bufferSize)
         {
             if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize), bufferSize, "The buffer size must be at least 1.");
 
-            this.ipcName = ipcName;
-            this.bufferSize = bufferSize;
+            this.IPCName = ipcName;
+            this.BufferSize = bufferSize;
 
             buffer = new byte[bufferSize];
         }
@@ -38,24 +38,24 @@ namespace CSharpTools.Pipes
         {
             lock (lockObject)
             {
-                if (isDisposed) return;
-                onDispose?.Invoke();
+                if (IsDisposed) return;
+                OnDispose?.Invoke();
                 _pipe.Close();
                 _pipe.Dispose();
-                isDisposed = true;
+                IsDisposed = true;
             }
         }
 
         protected virtual void OnConnectCallback()
         {
             connectedResetEvent.Set();
-            onConnect?.Invoke();
+            OnConnect?.Invoke();
             BeginRead();
         }
 
         protected virtual void BeginRead()
         {
-            try { _pipe.BeginRead(buffer, 0, bufferSize, OnEndReadCallback, null); }
+            try { _pipe.BeginRead(buffer, 0, BufferSize, OnEndReadCallback, null); }
             catch (ObjectDisposedException) { Dispose(); }
         }
 
@@ -88,10 +88,10 @@ namespace CSharpTools.Pipes
             //lastData = data;
 
             //Dispatch the OnMessage event.
-            onMessage?.Invoke(data);
+            OnMessage?.Invoke(data);
 
             //Clear the byte stream for new messages.
-            buffer = new byte[bufferSize];
+            buffer = new byte[BufferSize];
 
             //Continue to the next read
             BeginRead();
@@ -102,11 +102,11 @@ namespace CSharpTools.Pipes
         public async virtual void SendMessage(ReadOnlyMemory<byte> data)
         {
             if (!_pipe.IsConnected) throw new IOException("The pipe is not connected.");
-            else if (data.Length > bufferSize) throw new IOException("The message is too large.");
+            else if (data.Length > BufferSize) throw new IOException("The message is too large.");
             else if (data.Length == 0) throw new IOException("The message is empty.");
-            else if (data.Length > bufferSize) throw new IOException("The message is too large.");
+            else if (data.Length > BufferSize) throw new IOException("The message is too large.");
 
-            await _pipe.WriteAsync(data.ToArray(), 0, bufferSize);
+            await _pipe.WriteAsync(data.ToArray(), 0, BufferSize);
         }
     }
 }

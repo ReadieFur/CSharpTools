@@ -81,7 +81,7 @@ namespace CSharpTools.Pipes
                     , pipeSecurity
 #endif
                     );
-                pipeServer.onConnect += PipeServer_OnConnect;
+                pipeServer.OnConnect += PipeServer_OnConnect;
 
                 pendingPipeServer = pipeServer;
             }
@@ -111,8 +111,8 @@ namespace CSharpTools.Pipes
             catch (IOException) { }
 
             //Adding the event listners here prevents the temporary pipe (the one waiting for a new connection) from firing events.
-            pipeServer.onMessage += (data) => OnMessage?.Invoke(guid, data);
-            pipeServer.onDispose += () => PipeServer_OnDispose(guid);
+            pipeServer.OnMessage += (data) => OnMessage?.Invoke(guid, data);
+            pipeServer.OnDispose += () => PipeServer_OnDispose(guid);
 
             //Fire the on-connection event for this new pipe.
             OnConnect?.Invoke(guid);
@@ -146,7 +146,7 @@ namespace CSharpTools.Pipes
             if (IsDisposed) throw new ObjectDisposedException(nameof(PipeServerManager));
 
             foreach (PipeServer pipeServer in pipeServers.Values)
-                if (pipeServer.isConnected)
+                if (pipeServer.IsConnected)
                     pipeServer.SendMessage(data);
         }
     }

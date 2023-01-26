@@ -21,7 +21,7 @@ namespace CSharpTools.Pipes
         {
 #if NET6_0_OR_GREATER && WINDOWS
             _pipe = NamedPipeServerStreamAcl.Create(
-                ipcName,
+                IPCName,
                 PipeDirection.InOut,
                 maxAllowedServerInstances,
                 PipeTransmissionMode.Byte,
