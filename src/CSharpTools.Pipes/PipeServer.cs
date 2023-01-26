@@ -3,6 +3,8 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace CSharpTools.Pipes
 {
@@ -10,9 +12,24 @@ namespace CSharpTools.Pipes
     {
         protected override PipeStream _pipe { get; set; }
 
-        public PipeServer(string pipeName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances)
+        public PipeServer(string pipeName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances
+#if NET6_0_OR_GREATER && WINDOWS
+            , PipeSecurity? pipeSecurity = null
+#endif
+            )
             : base(pipeName, bufferSize)
         {
+#if NET6_0_OR_GREATER && WINDOWS
+            _pipe = NamedPipeServerStreamAcl.Create(
+                ipcName,
+                PipeDirection.InOut,
+                maxAllowedServerInstances,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous,
+                bufferSize,
+                bufferSize,
+                pipeSecurity);
+#else
             _pipe = new NamedPipeServerStream(
                 pipeName,
                 PipeDirection.InOut,
@@ -23,7 +40,8 @@ namespace CSharpTools.Pipes
                 PipeTransmissionMode.Byte,
 #endif
                 PipeOptions.Asynchronous);
-            
+#endif
+
             pipe.BeginWaitForConnection(OnConnectCallback, null);
         }
 

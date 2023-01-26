@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Threading;
 
 namespace CSharpTools.Pipes
@@ -15,23 +17,38 @@ namespace CSharpTools.Pipes
         private PipeServer? pendingPipeServer;
         private readonly int bufferSize;
         private readonly int maxAllowedServerInstances;
-        
-        public string ipcName { get; private set; }
-        public bool isDisposed { get; private set; } = false;
-        public ICollection<Guid> pipeServerIDs => pipeServers.Keys;
-        public event Action<Guid>? onConnect;
-        //ReadOnlySpan would be faster and more efficent I believe but it cannot be used in this sceneario.
-        public event Action<Guid, ReadOnlyMemory<byte>>? onMessage;
-        public event Action<Guid>? onDispose;
+#if NET6_0_OR_GREATER && WINDOWS
+        private readonly PipeSecurity? pipeSecurity;
+#endif
 
-        public PipeServerManager(string ipcName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances)
+        public string IPCName { get; private set; }
+        public bool IsDisposed { get; private set; } = false;
+        public IReadOnlyDictionary<Guid, PipeServer> PipeServers => pipeServers;
+        public event Action<Guid>? OnConnect;
+        //ReadOnlySpan would be faster and more efficent I believe but it cannot be used in this sceneario.
+        public event Action<Guid, ReadOnlyMemory<byte>>? OnMessage;
+        public event Action<Guid>? OnDispose;
+
+        public PipeServerManager(string ipcName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances
+#if NET6_0_OR_GREATER && WINDOWS
+            , PipeSecurity? pipeSecurity = null
+#endif
+            )
         {
             mutex = new Mutex(false, $"mutex_{ipcName}", out bool created);
             if (!created) throw new IOException($"A pipe server with the name '{ipcName}' already exists.");
 
-            this.ipcName = ipcName;
+            this.IPCName = ipcName;
             this.bufferSize = bufferSize;
             this.maxAllowedServerInstances = maxAllowedServerInstances;
+#if NET6_0_OR_GREATER && WINDOWS
+            //The windows 7.0 version of the .NET framework supports extra security features for named pipes.
+            if (pipeSecurity == null)
+                pipeSecurity = new PipeSecurity();
+            //Allow this process to modify the pipe security.
+            pipeSecurity.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
+            this.pipeSecurity = pipeSecurity;
+#endif
 
             CreateInstance();
         }
@@ -40,11 +57,11 @@ namespace CSharpTools.Pipes
         {
             lock (lockObject)
             {
-                if (isDisposed) return;
+                if (IsDisposed) return;
                 if (pendingPipeServer != null) pendingPipeServer.Dispose();
                 foreach (PipeServer pipeServer in pipeServers.Values) pipeServer.Dispose();
                 mutex.Dispose();
-                isDisposed = true;
+                IsDisposed = true;
             }
         }
 
@@ -52,12 +69,18 @@ namespace CSharpTools.Pipes
         {
             lock (lockObject)
             {
-                if (isDisposed || pendingPipeServer != null) return;
+                if (IsDisposed || pendingPipeServer != null) return;
                 else if (maxAllowedServerInstances > 0 && pipeServers.Count > maxAllowedServerInstances)
                     throw new IOException("The maximum number of server instances has been exceeded.");
 
                 //Create the new pipe.
-                PipeServer pipeServer = new(ipcName, bufferSize, maxAllowedServerInstances);
+                PipeServer pipeServer = new(
+                    IPCName, bufferSize,
+                    maxAllowedServerInstances
+#if NET6_0_OR_GREATER && WINDOWS
+                    , pipeSecurity
+#endif
+                    );
                 pipeServer.onConnect += PipeServer_OnConnect;
 
                 pendingPipeServer = pipeServer;
@@ -68,7 +91,7 @@ namespace CSharpTools.Pipes
         {
             //Check if we have disposed between the event firing and the disposal of this class.
             //No need to dispose of the pipe server here because the dispose method on this class will handle that.
-            if (isDisposed) return;
+            if (IsDisposed) return;
 
             //Generate a unique ID for the new pipe.
             Guid guid;
@@ -88,20 +111,20 @@ namespace CSharpTools.Pipes
             catch (IOException) { }
 
             //Adding the event listners here prevents the temporary pipe (the one waiting for a new connection) from firing events.
-            pipeServer.onMessage += (data) => onMessage?.Invoke(guid, data);
+            pipeServer.onMessage += (data) => OnMessage?.Invoke(guid, data);
             pipeServer.onDispose += () => PipeServer_OnDispose(guid);
 
             //Fire the on-connection event for this new pipe.
-            onConnect?.Invoke(guid);
+            OnConnect?.Invoke(guid);
         }
 
         private void PipeServer_OnDispose(Guid guid)
         {
-            onDispose?.Invoke(guid);
+            OnDispose?.Invoke(guid);
 
             pipeServers.TryRemove(guid, out _);
 
-            if (isDisposed) return;
+            if (IsDisposed) return;
             
             if (pendingPipeServer == null)
             {
@@ -112,7 +135,7 @@ namespace CSharpTools.Pipes
 
         public void SendMessage(Guid guid, ReadOnlyMemory<byte> data)
         {
-            if (isDisposed) throw new ObjectDisposedException(nameof(PipeServerManager));
+            if (IsDisposed) throw new ObjectDisposedException(nameof(PipeServerManager));
 
             if (!pipeServers.TryGetValue(guid, out PipeServer? pipeServer) || pipeServer == null) throw new Exception("Pipe server not found.");
             pipeServer.SendMessage(data);
@@ -120,7 +143,7 @@ namespace CSharpTools.Pipes
 
         public void BroadcastMessage(ReadOnlyMemory<byte> data)
         {
-            if (isDisposed) throw new ObjectDisposedException(nameof(PipeServerManager));
+            if (IsDisposed) throw new ObjectDisposedException(nameof(PipeServerManager));
 
             foreach (PipeServer pipeServer in pipeServers.Values)
                 if (pipeServer.isConnected)

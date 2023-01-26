@@ -21,9 +21,9 @@ namespace CSharpTools.Tests.Pipes
 #endif
 #if true
             PipeServerManager pipeServerManager = new(ipcName, bufferSize);
-            pipeServerManager.onConnect += PipeServerManager_OnConnect;
-            pipeServerManager.onMessage += PipeServerManager_OnMessage;
-            pipeServerManager.onDispose += PipeServerManager_OnDispose;
+            pipeServerManager.OnConnect += PipeServerManager_OnConnect;
+            pipeServerManager.OnMessage += PipeServerManager_OnMessage;
+            pipeServerManager.OnDispose += PipeServerManager_OnDispose;
             
             List<PipeClient> clients = new();
             for (int i = 0; i < numberOfClientsToCreate; i++)
@@ -34,8 +34,8 @@ namespace CSharpTools.Tests.Pipes
             }
             for (int i = 0; i < numberOfClientsToCreate; i++) clients[i].SendMessage(Helpers.Serialize(i));
 
-            pipeServerManager.BroadcastMessage(Helpers.Serialize(pipeServerManager.pipeServerIDs.Count));
-            pipeServerManager.SendMessage(pipeServerManager.pipeServerIDs.First(), Helpers.Serialize(4));
+            pipeServerManager.BroadcastMessage(Helpers.Serialize(pipeServerManager.PipeServers.Count));
+            pipeServerManager.SendMessage(pipeServerManager.PipeServers.First().Key, Helpers.Serialize(4));
 
             //Console.ReadLine();
             
