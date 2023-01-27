@@ -1,6 +1,4 @@
-﻿//#define USE_MESSAGE_MODE
-
-using System.IO.Pipes;
+﻿using System.IO.Pipes;
 using System.Security.Principal;
 
 namespace CSharpTools.Pipes
@@ -9,6 +7,11 @@ namespace CSharpTools.Pipes
     {
         protected override PipeStream _pipe { get; set; }
 
+        /// <summary>
+        /// Creates a pipe client that connects to a pipe server with the given name.
+        /// </summary>
+        /// <param name="ipcName">The name of the pipe server to connect to.</param>
+        /// <param name="bufferSize">The buffer size for messages.</param>
         public PipeClient(string ipcName, int bufferSize) : base(ipcName, bufferSize)
         {
             _pipe = new NamedPipeClientStream(
@@ -24,14 +27,7 @@ namespace CSharpTools.Pipes
         protected override void OnConnectCallback()
         {
             //https://stackoverflow.com/questions/4514784/pipetransmissionmode-message-how-do-net-named-pipes-distinguish-between-messag
-            pipe.ReadMode =
-#if USE_MESSAGE_MODE
-                PipeTransmissionMode.Message
-#else
-                PipeTransmissionMode.Byte
-#endif
-            ;
-
+            pipe.ReadMode = PipeTransmissionMode.Byte;
             base.OnConnectCallback();
         }
     }

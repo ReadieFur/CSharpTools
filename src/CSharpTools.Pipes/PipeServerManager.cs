@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
@@ -17,7 +18,7 @@ namespace CSharpTools.Pipes
         private PipeServer? pendingPipeServer;
         private readonly int bufferSize;
         private readonly int maxAllowedServerInstances;
-#if NET6_0_OR_GREATER && WINDOWS
+#if NET6_0_OR_GREATER || NET48_OR_GREATER
         private readonly PipeSecurity? pipeSecurity;
 #endif
 
@@ -29,8 +30,19 @@ namespace CSharpTools.Pipes
         public event Action<Guid, ReadOnlyMemory<byte>>? OnMessage;
         public event Action<Guid>? OnDispose;
 
+        /// <summary>
+        /// Creates a pipe server manager to handle multiple client connections.
+        /// </summary>
+        /// <param name="ipcName">The name to use for the pipe.</param>
+        /// <param name="bufferSize">The buffer size for messages.</param>
+        /// <param name="maxAllowedServerInstances">The maximum number of connections allowed to this server.</param>
+        /// <param name="pipeSecurity">
+        /// The security options for the the pipe server.
+        /// <para>Only supported on <see cref="OSPlatform.Windows"/>.</para>
+        /// </param>
+        /// <exception cref="IOException"></exception>
         public PipeServerManager(string ipcName, int bufferSize, int maxAllowedServerInstances = NamedPipeServerStream.MaxAllowedServerInstances
-#if NET6_0_OR_GREATER && WINDOWS
+#if NET6_0_OR_GREATER || NET48_OR_GREATER
             , PipeSecurity? pipeSecurity = null
 #endif
             )
@@ -41,13 +53,17 @@ namespace CSharpTools.Pipes
             this.IPCName = ipcName;
             this.bufferSize = bufferSize;
             this.maxAllowedServerInstances = maxAllowedServerInstances;
-#if NET6_0_OR_GREATER && WINDOWS
-            //The windows 7.0 version of the .NET framework supports extra security features for named pipes.
-            if (pipeSecurity == null)
-                pipeSecurity = new PipeSecurity();
-            //Allow this process to modify the pipe security.
-            pipeSecurity.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
-            this.pipeSecurity = pipeSecurity;
+#if NET6_0_OR_GREATER || NET48_OR_GREATER
+            //The windows versions of the .NET framework and .NET core support extra security features for named pipes.
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (pipeSecurity == null)
+                    pipeSecurity = new PipeSecurity();
+
+                //Allow this process to modify the pipe security.
+                pipeSecurity.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().Owner!, PipeAccessRights.FullControl, AccessControlType.Allow));
+                this.pipeSecurity = pipeSecurity;
+            }
 #endif
 
             CreateInstance();
@@ -77,7 +93,7 @@ namespace CSharpTools.Pipes
                 PipeServer pipeServer = new(
                     IPCName, bufferSize,
                     maxAllowedServerInstances
-#if NET6_0_OR_GREATER && WINDOWS
+#if NET6_0_OR_GREATER || NET48_OR_GREATER
                     , pipeSecurity
 #endif
                     );
