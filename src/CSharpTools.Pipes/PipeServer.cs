@@ -27,16 +27,47 @@ namespace CSharpTools.Pipes
             )
             : base(pipeName, bufferSize)
         {
-            _pipe = new NamedPipeServerStream(
+#if NET6_0_OR_GREATER || NET48_OR_GREATER
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && pipeSecurity != null)
+            {
+#if NET6_0_OR_GREATER
+                _pipe = NamedPipeServerStreamAcl.Create(
+                    pipeName,
+                    PipeDirection.InOut,
+                    maxAllowedServerInstances,
+                    PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous,
+                    bufferSize,
+                    bufferSize,
+                    pipeSecurity);
+#elif NET48_OR_GREATER
+                _pipe = new NamedPipeServerStream(
+                    pipeName,
+                    PipeDirection.InOut,
+                    maxAllowedServerInstances,
+                    PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous,
+                    bufferSize,
+                    bufferSize,
+                    pipeSecurity);
+#endif
+            }
+            else
+            {
+                _pipe = new NamedPipeServerStream(
+                    pipeName,
+                    PipeDirection.InOut,
+                    maxAllowedServerInstances,
+                    PipeTransmissionMode.Byte,
+                    PipeOptions.Asynchronous);
+            }
+#else
+                _pipe = new NamedPipeServerStream(
                 pipeName,
                 PipeDirection.InOut,
                 maxAllowedServerInstances,
                 PipeTransmissionMode.Byte,
                 PipeOptions.Asynchronous);
-
-#if NET6_0_OR_GREATER || NET48_OR_GREATER
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && pipeSecurity != null)
-                _pipe.SetAccessControl(pipeSecurity);
 #endif
 
             pipe.BeginWaitForConnection(OnConnectCallback, null);

@@ -1,4 +1,7 @@
 ﻿using CSharpTools.Pipes;
+using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace CSharpTools.Tests.Pipes
 {
@@ -20,7 +23,23 @@ namespace CSharpTools.Tests.Pipes
             PipeClient client2 = CreateClient(2);
 #endif
 #if true
-            PipeServerManager pipeServerManager = new(ipcName, bufferSize);
+#if NET6_0_OR_GREATER || NET48_OR_GREATER
+            PipeSecurity pipeSecurity = new();
+            //Allow local users to read and write to the pipe.
+            pipeSecurity.AddAccessRule(new PipeAccessRule(
+                new SecurityIdentifier(WellKnownSidType.LocalSid, null),
+                PipeAccessRights.ReadWrite, AccessControlType.Allow));
+            //Deny network users access to the pipe.
+            pipeSecurity.AddAccessRule(new PipeAccessRule(
+                new SecurityIdentifier(WellKnownSidType.NetworkSid, null),
+                PipeAccessRights.FullControl, AccessControlType.Deny));
+#endif
+
+            PipeServerManager pipeServerManager = new(ipcName, bufferSize
+#if NET6_0_OR_GREATER || NET48_OR_GREATER
+                , pipeSecurity: pipeSecurity
+#endif
+            );
             pipeServerManager.OnConnect += PipeServerManager_OnConnect;
             pipeServerManager.OnMessage += PipeServerManager_OnMessage;
             pipeServerManager.OnDispose += PipeServerManager_OnDispose;
